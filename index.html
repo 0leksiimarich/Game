@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Гра — Збери монети!</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 15px;
+            border-radius: 8px;
+            user-select: none;
+        }
+        #gameover {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 36px;
+            background: rgba(200,0,0,0.8);
+            padding: 20px 40px;
+            border-radius: 12px;
+            display: none;
+            text-align: center;
+        }
+        #gameover button {
+            margin-top: 15px;
+            font-size: 20px;
+            padding: 8px 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Очки: 0</div>
+    <div id="gameover">
+        Гра закінчена!<br>
+        Ваш рахунок: <span id="final-score">0</span><br>
+        <button onclick="location.reload()">Зіграти ще раз</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // --- Налаштування сцени ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // блакитне небо
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 8, 10);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Освітлення
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 7);
+        scene.add(directionalLight);
+
+        // Підлога
+        const planeGeometry = new THREE.PlaneGeometry(20, 20);
+        const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x2c3e50 });
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.rotation.x = -Math.PI / 2;
+        scene.add(plane);
+
+        // Гравець (куб)
+        const playerGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+        const playerMaterial = new THREE.MeshStandardMaterial({ color: 0x1abc9c });
+        const player = new THREE.Mesh(playerGeometry, playerMaterial);
+        player.position.y = 0.4;
+        scene.add(player);
+
+        // Монети та перешкоди
+        const coins = [];
+        const obstacles = [];
+        let score = 0;
+        let gameOver = false;
+
+        // Керування
+        const keys = {};
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        // Створення об'єктів кожну секунду
+        setInterval(() => {
+            if (gameOver) return;
+
+            const isCoin = Math.random() > 0.4; // 60% — монета, 40% — перешкода
+            let mesh;
+            if (isCoin) {
+                const geo = new THREE.SphereGeometry(0.4, 16, 16);
+                const mat = new THREE.MeshStandardMaterial({ color: 0xf1c40f }); // золотий
+                mesh = new THREE.Mesh(geo, mat);
+                mesh.position.y = 0.4;
+                coins.push(mesh);
+            } else {
+                const geo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+                const mat = new THREE.MeshStandardMaterial({ color: 0xe74c3c }); // червоний
+                mesh = new THREE.Mesh(
